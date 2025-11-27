@@ -1,7 +1,6 @@
 import { HomeCard } from '@/components/shared/home/home-card'
 import { HomeCarousel } from '@/components/shared/home/home-carousel'
-import { Card, CardContent } from '@/components/ui/card'
-import { CarouselPrevious } from '@/components/ui/carousel'
+
 import {
   getAllCategories,
   getProductsForCard,
