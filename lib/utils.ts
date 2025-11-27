@@ -16,3 +16,18 @@ export const toSlug = (text: string): string =>
     .replace(/[^\w\s-]+/g, '')
     .replace(/\s+/g, '-')
     .replace(/^-+|-+$/g, '')
+
+const CURRENCY_FORMATTER = new Intl.NumberFormat('en-NG', {
+  currency: 'NGN',
+  style: 'currency',
+  minimumFractionDigits: 2,
+})
+
+export function formatCurrency(amount: number) {
+  return CURRENCY_FORMATTER.format(amount)
+}
+
+const NUMBER_FORMATTER = new Intl.NumberFormat('en-NG')
+export function formatNumber(number: number) {
+  return NUMBER_FORMATTER.format(number)
+}
