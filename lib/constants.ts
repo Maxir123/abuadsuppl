@@ -4,3 +4,4 @@ export const APP_SLOGAN =
 export const APP_DESCRIPTION =
   process.env.NEXT_PUBLIC_APP_DESCRIPTION ||
   'Your one-stop shop for all your supply needs at Abuad.'
+export const PAGE_SIZE = Number(process.env.PAGE_SIZE || 9)
