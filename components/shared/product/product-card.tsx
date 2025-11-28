@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { IProduct } from '@/lib/db/models/product.model'
 import ImageHover from './image-hover'
 import Rating from './rating'
-import { formatNumber } from '@/lib/utils'
+import { formatNumber, generateId, round2 } from '@/lib/utils'
 import ProductPrice from './product-price'
+import AddToCart from './add-to-cart'
 
 // -------------------------
 // Sub-components moved outside
@@ -64,6 +65,27 @@ const ProductDetails = ({ product }: { product: IProduct }) => (
       price={product.price}
       listPrice={product.listPrice}
       forListing
+    />
+  </div>
+)
+
+const AddButton = ({ product }: { product: IProduct }) => (
+  <div className='w-full text-center'>
+    <AddToCart
+      minimal
+      item={{
+        clientId: generateId(),
+        product: product._id.toString(),
+        size: product.sizes[0],
+        color: product.colors[0],
+        countInStock: product.countInStock,
+        name: product.name,
+        slug: product.slug,
+        category: product.category,
+        price: round2(product.price),
+        quantity: 1,
+        image: product.images[0],
+      }}
     />
   </div>
 )
