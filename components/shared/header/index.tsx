@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { APP_NAME } from '@/lib/constants'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -11,18 +10,7 @@ import {
   SheetTrigger,
   SheetTitle,
 } from '@/components/ui/sheet'
-import {
-  Menu,
-  MapPin,
-  Bell,
-  BookOpen,
-  GraduationCap,
-  Utensils,
-  Search,
-  ShoppingCart,
-  Heart,
-  User,
-} from 'lucide-react'
+import { Menu, MapPin, BookOpen, GraduationCap, Utensils } from 'lucide-react'
 import SearchBar from './search'
 import UserMenu from './menu'
 

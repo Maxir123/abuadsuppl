@@ -1,8 +1,9 @@
-import { Data, IProductInput } from '@/types'
+import { Data, IProductInput, IUserInput } from '@/types'
 import { toSlug } from './utils'
+import bcrypt from 'bcryptjs'
 
 const products: IProductInput[] = [
-  // T-Shirts
+  // --- T-Shirts ---
   {
     name: 'Nike Mens Slim-fit Long-Sleeve T-Shirt',
     slug: toSlug('Nike Mens Slim-fit Long-Sleeve T-Shirt'),
@@ -10,7 +11,7 @@ const products: IProductInput[] = [
     images: ['/images/p11-1.jpg', '/images/p11-2.jpg'],
     tags: ['new-arrival'],
     isPublished: true,
-    price: 21000.8,
+    price: 21000,
     listPrice: 0,
     brand: 'Nike',
     avgRating: 4.71,
@@ -28,7 +29,6 @@ const products: IProductInput[] = [
       'Made with chemicals safer for human health and the environment',
     sizes: ['S', 'M', 'L', 'XL', 'XXL'],
     colors: ['Green', 'Red', 'Black'],
-
     reviews: [],
   },
   {
@@ -43,7 +43,7 @@ const products: IProductInput[] = [
     ],
     tags: ['featured'],
     isPublished: true,
-    price: 23000.78,
+    price: 23000,
     listPrice: 0,
     brand: 'Jerzees',
     avgRating: 4.2,
@@ -58,11 +58,9 @@ const products: IProductInput[] = [
     numSales: 29,
     countInStock: 12,
     description:
-      'Made with sustainably sourced USA grown cotton; Shoulder-to-shoulder tape; double-needle coverstitched front neck; Set-in sleeves; Rib cuffs with concealed seams; Seamless body for a wide printing area',
-
+      'Made with sustainably sourced USA grown cotton; Shoulder-to-shoulder tape; double-needle coverstitched front neck.',
     sizes: ['S', 'M', 'L', 'XL', 'XXL'],
     colors: ['Yellow', 'Red', 'Black'],
-
     reviews: [],
   },
   {
@@ -73,8 +71,8 @@ const products: IProductInput[] = [
     images: ['/images/p13-1.jpg', '/images/p13-2.jpg'],
     tags: ['best-seller'],
     isPublished: true,
-    price: 13000.86,
-    listPrice: 16.03,
+    price: 13000,
+    listPrice: 16500, // Fixed: Was 16.03
     avgRating: 4,
     numReviews: 12,
     ratingDistribution: [
@@ -87,14 +85,13 @@ const products: IProductInput[] = [
     numSales: 55,
     countInStock: 13,
     description:
-      'The Jerzees long sleeve t-shirt is made with dri-power technology that wicks away moisture to keep you cool and dry throughout your day. We also included a rib collar and cuffs for added durability, and a lay-flat collar for comfort. If you are looking for a versatile shirt that you can wear throughout the transitioning seasons, then look no further.',
+      'The Jerzees long sleeve t-shirt is made with dri-power technology that wicks away moisture to keep you cool and dry.',
     sizes: ['XL', 'XXL'],
     colors: ['Green', 'White'],
-
     reviews: [],
   },
   {
-    name: 'Decrum Mens Plain Long Sleeve T-Shirt - Comfortable Soft Fashion V Neck Full Sleeves Jersey Shirts',
+    name: 'Decrum Mens Plain Long Sleeve T-Shirt',
     slug: toSlug(
       'Decrum Mens Plain Long Sleeve T-Shirt - Comfortable Soft Fashion V Neck Full Sleeves Jersey Shirts'
     ),
@@ -103,8 +100,8 @@ const products: IProductInput[] = [
     images: ['/images/p14-1.jpg', '/images/p14-2.jpg'],
     tags: ['todays-deal'],
     isPublished: true,
-    price: 26000.95,
-    listPrice: 46.03,
+    price: 26000,
+    listPrice: 46000, // Fixed: Was 46.03
     avgRating: 3.85,
     numReviews: 14,
     ratingDistribution: [
@@ -117,24 +114,23 @@ const products: IProductInput[] = [
     numSales: 54,
     countInStock: 14,
     description:
-      'Elevate your outfit with this soft long sleeve t shirt men. This full sleeves tee is the ultimate upgrade from your regular cotton t-shirt. ',
+      'Elevate your outfit with this soft long sleeve t shirt men. This full sleeves tee is the ultimate upgrade.',
     sizes: ['XL', 'XXL'],
     colors: ['Yellow', 'White'],
-
     reviews: [],
   },
   {
-    name: "Muscle Cmdr Men's Slim Fit Henley Shirt Long&Short Business Sleeve Casual 3 Metal Buton Placket Casual Stylish T-Shirt",
+    name: "Muscle Cmdr Men's Slim Fit Henley Shirt",
     slug: toSlug(
       "Muscle Cmdr Men's Slim Fit Henley Shirt Long&Short Business Sleeve Casual 3 Metal Buton Placket Casual Stylish T-Shirt"
     ),
     category: 'T-Shirts',
-    brand: ' Muscle Cmdr',
+    brand: 'Muscle Cmdr',
     images: ['/images/p15-1.jpg', '/images/p15-2.jpg'],
     tags: ['new-arrival', 'featured'],
     isPublished: true,
-    price: 29000.99,
-    listPrice: 35.99,
+    price: 29000,
+    listPrice: 36000, // Fixed: Was 35.99
     avgRating: 3.66,
     numReviews: 15,
     ratingDistribution: [
@@ -147,10 +143,9 @@ const products: IProductInput[] = [
     numSales: 54,
     countInStock: 15,
     description:
-      "Slim Fit Design:Men's Muscle Slim Fit Button Henley Shirts are designed to fit snugly against your body, accentuating your muscles and creating a sleek silhouette that's perfect for any occasion. ",
+      "Slim Fit Design: Men's Muscle Slim Fit Button Henley Shirts are designed to fit snugly against your body.",
     sizes: ['XL', 'XXL'],
     colors: ['Green', 'Yellow'],
-
     reviews: [],
   },
   {
@@ -161,8 +156,8 @@ const products: IProductInput[] = [
     images: ['/images/p16-1.jpg', '/images/p16-2.jpg'],
     tags: ['best-seller', 'todays-deal'],
     isPublished: true,
-    price: 25000.3,
-    listPrice: 32.99,
+    price: 25000,
+    listPrice: 33000, // Fixed: Was 32.99
     avgRating: 3.46,
     numReviews: 13,
     ratingDistribution: [
@@ -178,10 +173,10 @@ const products: IProductInput[] = [
       'Heavyweight cotton (Heathers are 60% cotton/40% polyester; Pebblestone is 75% cotton/25% polyester)',
     sizes: ['XL', 'XXL'],
     colors: ['Grey', 'White'],
-
     reviews: [],
   },
-  // Jeans
+
+  // --- Jeans ---
   {
     name: 'Silver Jeans Co. Mens Jace Slim Fit Bootcut Jeans',
     slug: toSlug('Silver Jeans Co. Mens Jace Slim Fit Bootcut Jeans'),
@@ -190,7 +185,7 @@ const products: IProductInput[] = [
     images: ['/images/p21-1.jpg', '/images/p21-2.jpg'],
     tags: ['new-arrival'],
     isPublished: true,
-    price: 95000.34,
+    price: 95000,
     listPrice: 0,
     avgRating: 4.71,
     numReviews: 7,
@@ -204,14 +199,13 @@ const products: IProductInput[] = [
     countInStock: 54,
     numSales: 21,
     description:
-      'Silver Jeans Co. Jace Slim Fit Bootcut Jeans - Consider Jace a modern cowboy jean. It sits below the waist and features a slim fit through the hip and thigh. Finished with an 18” bootcut leg opening that complements the slimmer silhouette while still fitting over boots',
+      'Silver Jeans Co. Jace Slim Fit Bootcut Jeans - Consider Jace a modern cowboy jean.',
     sizes: ['30Wx30L', '34Wx30L', '36Wx30L'],
     colors: ['Blue', 'Grey'],
-
     reviews: [],
   },
   {
-    name: "Levi's mens 505 Regular Fit Jeans (Also Available in Big & Tall)",
+    name: "Levi's mens 505 Regular Fit Jeans",
     slug: toSlug(
       "Levi's mens 505 Regular Fit Jeans (Also Available in Big & Tall)"
     ),
@@ -220,8 +214,8 @@ const products: IProductInput[] = [
     images: ['/images/p22-1.jpg', '/images/p22-2.jpg'],
     tags: ['featured'],
     isPublished: true,
-    price: 59000.99,
-    listPrice: 69.99,
+    price: 59000,
+    listPrice: 70000, // Fixed: Was 69.99
     avgRating: 4.2,
     numReviews: 10,
     ratingDistribution: [
@@ -237,7 +231,6 @@ const products: IProductInput[] = [
       'A veritable classic, this 505 is made to have a comfortable look and style.',
     sizes: ['30Wx30L', '34Wx30L', '36Wx30L'],
     colors: ['Blue', 'Grey'],
-
     reviews: [],
   },
   {
@@ -248,8 +241,8 @@ const products: IProductInput[] = [
     images: ['/images/p23-1.jpg', '/images/p23-2.jpg'],
     tags: ['best-seller'],
     isPublished: true,
-    price: 38000.9,
-    listPrice: 45,
+    price: 38000,
+    listPrice: 45000, // Fixed: Was 45
     avgRating: 4,
     numReviews: 12,
     ratingDistribution: [
@@ -262,14 +255,13 @@ const products: IProductInput[] = [
     countInStock: 23,
     numSales: 54,
     description:
-      'These classic 5-pocket straight-fit jeans are crafted with a bit of stretch for additional comfort and to help maintain their shape',
+      'These classic 5-pocket straight-fit jeans are crafted with a bit of stretch for additional comfort.',
     sizes: ['30Wx30L', '34Wx30L', '36Wx30L'],
     colors: ['Grey', 'Blue'],
-
     reviews: [],
   },
   {
-    name: "Buffalo David Bitton Mens Men's Driven Relaxed Denim JeansJeans",
+    name: "Buffalo David Bitton Men's Driven Relaxed Denim Jeans",
     slug: toSlug(
       "Buffalo David Bitton Mens Men's Driven Relaxed Denim JeansJeans"
     ),
@@ -278,8 +270,8 @@ const products: IProductInput[] = [
     images: ['/images/p24-1.jpg', '/images/p24-2.jpg'],
     tags: ['todays-deal'],
     isPublished: true,
-    price: 69000.99,
-    listPrice: 100,
+    price: 69000,
+    listPrice: 100000, // Fixed: Was 100
     avgRating: 3.85,
     numReviews: 14,
     ratingDistribution: [
@@ -292,10 +284,9 @@ const products: IProductInput[] = [
     countInStock: 24,
     numSales: 53,
     description:
-      'Stretch recycled denim jeans in an authentic and sanded wash blue. Features a comfortable low-rise waist with a relaxed fit at the leg. The distressed look gives these jeans an effortlessly worn-in feel. The eco-friendly logo patch in tan and red is at the back waistband. The signature maple leaf graphic is debossed at the zip-fly.',
+      'Stretch recycled denim jeans in an authentic and sanded wash blue.',
     sizes: ['30Wx30L', '34Wx30L', '36Wx30L'],
     colors: ['Blue', 'Grey'],
-
     reviews: [],
   },
   {
@@ -306,7 +297,7 @@ const products: IProductInput[] = [
     images: ['/images/p25-1.jpg', '/images/p25-2.jpg'],
     tags: ['new-arrival', 'featured'],
     isPublished: true,
-    price: 95000.34,
+    price: 95000,
     listPrice: 0,
     avgRating: 3.66,
     numReviews: 15,
@@ -323,19 +314,18 @@ const products: IProductInput[] = [
       'Relaxed work jean with traditional carpenter-style pockets and logo patch at back pockets',
     sizes: ['30Wx30L', '34Wx30L', '36Wx30L'],
     colors: ['Blue', 'Grey'],
-
     reviews: [],
   },
   {
-    name: 'Wrangler mens Premium Performance Cowboy Cut Slim Fit Jean',
+    name: 'Wrangler Mens Premium Performance Cowboy Cut Slim Fit Jean',
     slug: toSlug('Wrangler mens Premium Performance Cowboy Cut Slim Fit Jean'),
     category: 'Jeans',
     brand: 'Wrangler',
     images: ['/images/p26-1.jpg', '/images/p26-2.jpg'],
     tags: ['best-seller', 'todays-deal'],
     isPublished: true,
-    price: 81000.78,
-    listPrice: 149.99,
+    price: 81000,
+    listPrice: 150000, // Fixed: Was 149.99
     avgRating: 3.46,
     numReviews: 13,
     ratingDistribution: [
@@ -348,13 +338,13 @@ const products: IProductInput[] = [
     countInStock: 26,
     numSales: 48,
     description:
-      'Designed with a functional fit in mind, these jeans are made to stack over your favorite pair of boots. Constructed with a slim fit in the waist, seat, and thigh, this jean is made for both function and comfort for long days in the saddle.',
+      'Designed with a functional fit in mind, these jeans are made to stack over your favorite pair of boots.',
     sizes: ['30Wx30L', '34Wx30L', '36Wx30L'],
     colors: ['Blue', 'Grey'],
-
     reviews: [],
   },
-  // Watches
+
+  // --- Watches ---
   {
     name: "Seiko Men's Analogue Watch with Black Dial",
     slug: toSlug("Seiko Men's Analogue Watch with Black Dial"),
@@ -363,7 +353,7 @@ const products: IProductInput[] = [
     images: ['/images/p31-1.jpg', '/images/p31-2.jpg'],
     tags: ['new-arrival'],
     isPublished: true,
-    price: 530000.0,
+    price: 530000,
     listPrice: 0,
     avgRating: 4.71,
     numReviews: 7,
@@ -377,14 +367,13 @@ const products: IProductInput[] = [
     countInStock: 31,
     numSales: 48,
     description:
-      'Casing: Case made of stainless steel Case shape: round Case colour: silver Glass: Hardlex Clasp type: Fold over clasp with safety',
+      'Casing: Case made of stainless steel Case shape: round Case colour: silver Glass: Hardlex',
     sizes: [],
     colors: [],
-
     reviews: [],
   },
   {
-    name: 'SEIKO 5 Sport SRPJ83 Beige Dial Nylon Automatic Watch, Beige, Automatic Watch',
+    name: 'SEIKO 5 Sport SRPJ83 Beige Dial Nylon Automatic Watch',
     slug: toSlug(
       'SEIKO 5 Sport SRPJ83 Beige Dial Nylon Automatic Watch, Beige, Automatic Watch'
     ),
@@ -393,8 +382,8 @@ const products: IProductInput[] = [
     images: ['/images/p32-1.jpg', '/images/p32-2.jpg'],
     tags: ['featured'],
     isPublished: true,
-    price: 370005.83,
-    listPrice: 400,
+    price: 370000,
+    listPrice: 400000, // Fixed: Was 400
     avgRating: 4.2,
     numReviews: 10,
     ratingDistribution: [
@@ -410,11 +399,10 @@ const products: IProductInput[] = [
       'Seiko 5 Sports Collection Inspired by vintage field/aviator style: Automatic with manual winding capability',
     sizes: [],
     colors: [],
-
     reviews: [],
   },
   {
-    name: "Casio Men's Heavy Duty Analog Quartz Stainless Steel Strap, Silver, 42 Casual Watch ",
+    name: "Casio Men's Heavy Duty Analog Quartz Stainless Steel Strap",
     slug: toSlug(
       "Casio Men's Heavy Duty Analog Quartz Stainless Steel Strap, Silver, 42 Casual Watch"
     ),
@@ -423,7 +411,7 @@ const products: IProductInput[] = [
     images: ['/images/p33-1.jpg', '/images/p33-2.jpg'],
     tags: ['best-seller'],
     isPublished: true,
-    price: 60000.78,
+    price: 60000,
     listPrice: 0,
     avgRating: 4,
     numReviews: 12,
@@ -437,14 +425,13 @@ const products: IProductInput[] = [
     countInStock: 33,
     numSales: 48,
     description:
-      'The Casio range is growing with this model  MWA-100H-1AVEF. Sporting a stainless steel case with a brushed finish, it will easily withstand all the shocks of everyday life.',
+      'The Casio range is growing with this model MWA-100H-1AVEF. Sporting a stainless steel case with a brushed finish.',
     sizes: [],
     colors: [],
-
     reviews: [],
   },
   {
-    name: 'Casio Classic Silver-Tone Stainless Steel Band Date Indicator Watch',
+    name: 'Casio Classic Silver-Tone Stainless Steel Band',
     slug: toSlug(
       'Casio Classic Silver-Tone Stainless Steel Band Date Indicator Watch'
     ),
@@ -453,8 +440,8 @@ const products: IProductInput[] = [
     images: ['/images/p34-1.jpg', '/images/p34-2.jpg'],
     tags: ['todays-deal'],
     isPublished: true,
-    price: 34000.22,
-    listPrice: 54.99,
+    price: 34000,
+    listPrice: 55000, // Fixed: Was 54.99
     avgRating: 3.85,
     numReviews: 14,
     ratingDistribution: [
@@ -467,10 +454,9 @@ const products: IProductInput[] = [
     countInStock: 34,
     numSales: 48,
     description:
-      'The new MTPVD01D-7EV is a classic 50 meter water resistant stainless steel watch now updated with a white dial. This elegant 3 hand, date display timepiece is perfect for any setting.',
+      'The new MTPVD01D-7EV is a classic 50 meter water resistant stainless steel watch now updated with a white dial.',
     sizes: [],
     colors: [],
-
     reviews: [],
   },
   {
@@ -481,8 +467,8 @@ const products: IProductInput[] = [
     images: ['/images/p35-1.jpg', '/images/p35-2.jpg'],
     tags: ['new-arrival', 'featured'],
     isPublished: true,
-    price: 170001.22,
-    listPrice: 225,
+    price: 170000,
+    listPrice: 225000, // Fixed: Was 225
     avgRating: 3.66,
     numReviews: 15,
     ratingDistribution: [
@@ -498,7 +484,6 @@ const products: IProductInput[] = [
       'Chronograph watch featuring silver- and blue-tone case, blue sunray dial, and silver-tone Roman numeral indices',
     sizes: [],
     colors: ['Blue', 'Black', 'Sliver'],
-
     reviews: [],
   },
   {
@@ -509,8 +494,8 @@ const products: IProductInput[] = [
     images: ['/images/p36-1.jpg', '/images/p36-2.jpg'],
     tags: ['best-seller', 'todays-deal'],
     isPublished: true,
-    price: 150008.21,
-    listPrice: 229.0,
+    price: 150000,
+    listPrice: 229000, // Fixed: Was 229.0
     avgRating: 3.46,
     numReviews: 13,
     ratingDistribution: [
@@ -523,22 +508,22 @@ const products: IProductInput[] = [
     countInStock: 36,
     numSales: 49,
     description:
-      'In masculine black-on-black, our industrial-inspired Machine watch will add a fresh, modern touch to your casual look. This Machine watch also features a three hand movement on a stainless steel bracelet.',
+      'In masculine black-on-black, our industrial-inspired Machine watch will add a fresh, modern touch to your casual look.',
     sizes: [],
     colors: ['Brown', 'Sliver', 'Black'],
-
     reviews: [],
   },
-  // Sneakers
+
+  // --- Sneakers ---
   {
-    name: 'adidas Mens Grand Court 2.0 Training Shoes Training Shoes',
+    name: 'adidas Mens Grand Court 2.0 Training Shoes',
     slug: toSlug('adidas Mens Grand Court 2.0 Training Shoes Training Shoes'),
     category: 'Shoes',
     brand: 'adidas',
     images: ['/images/p41-1.jpg', '/images/p41-2.jpg'],
     tags: ['new-arrival'],
     isPublished: true,
-    price: 81000.99,
+    price: 81000,
     listPrice: 0,
     avgRating: 4.71,
     numReviews: 7,
@@ -555,11 +540,10 @@ const products: IProductInput[] = [
       'Cloudfoam Comfort sockliner is ultra-soft and plush, with two layers of cushioning topped with soft, breathable mesh',
     sizes: ['8', '9', '10'],
     colors: ['White', 'Black', 'Grey'],
-
     reviews: [],
   },
   {
-    name: "ziitop Men's Running Walking Shoes Fashion Sneakers Mesh Dress Shoes Business Oxfords Shoes Lightweight Casual Breathable Work Formal Shoes",
+    name: "ziitop Men's Running Walking Shoes",
     slug: toSlug(
       "ziitop Men's Running Walking Shoes Fashion Sneakers Mesh Dress Shoes Business Oxfords Shoes Lightweight Casual Breathable Work Formal Shoes"
     ),
@@ -568,8 +552,8 @@ const products: IProductInput[] = [
     images: ['/images/p42-1.jpg', '/images/p42-2.jpg'],
     tags: ['featured'],
     isPublished: true,
-    price: 39000.97,
-    listPrice: 49.96,
+    price: 39000,
+    listPrice: 50000, // Fixed: Was 49.96
     avgRating: 4.2,
     numReviews: 10,
     ratingDistribution: [
@@ -585,11 +569,10 @@ const products: IProductInput[] = [
       'Cloudfoam Comfort sockliner is ultra-soft and plush, with two layers of cushioning topped with soft, breathable mesh',
     sizes: ['8', '9', '10'],
     colors: ['Beige', 'Black', 'Grey'],
-
     reviews: [],
   },
   {
-    name: 'Skechers mens Summits High Range Hands Free Slip-in Shoes Work shoe',
+    name: 'Skechers mens Summits High Range Hands Free Slip-in Shoes',
     slug: toSlug(
       'Skechers mens Summits High Range Hands Free Slip-in Shoes Work shoe'
     ),
@@ -598,7 +581,7 @@ const products: IProductInput[] = [
     images: ['/images/p43-1.jpg', '/images/p43-2.jpg'],
     tags: ['best-seller'],
     isPublished: true,
-    price: 99000.99,
+    price: 99000,
     listPrice: 0,
     avgRating: 4,
     numReviews: 12,
@@ -612,14 +595,13 @@ const products: IProductInput[] = [
     countInStock: 43,
     numSales: 72,
     description:
-      'Step into easy-wearing comfort with Skechers Hands Free Slip-ins™: Summits - High Range. Along with our Exclusive Heel Pillow™ holds your foot securely in place, this vegan style features a unique pop-up Skechers Slip-ins™ molded heel panel, a mesh upper with fixed laces',
+      'Step into easy-wearing comfort with Skechers Hands Free Slip-ins™: Summits - High Range.',
     sizes: ['8', '9', '10'],
     colors: ['Navy', 'Black', 'Grey'],
-
     reviews: [],
   },
   {
-    name: 'DLWKIPV Mens Running Shoes Tennis Cross Training Sneakers Fashion Non Slip Outdoor Walking Jogging Shoes Mesh Light Flexible Comfortable Breathable Shoes',
+    name: 'DLWKIPV Mens Running Shoes',
     slug: toSlug(
       'DLWKIPV Mens Running Shoes Tennis Cross Training Sneakers Fashion Non Slip Outdoor Walking Jogging Shoes Mesh Light Flexible Comfortable Breathable Shoes'
     ),
@@ -628,8 +610,8 @@ const products: IProductInput[] = [
     images: ['/images/p44-1.jpg', '/images/p44-2.jpg'],
     tags: ['todays-deal'],
     isPublished: true,
-    price: 36000.99,
-    listPrice: 56.9,
+    price: 36000,
+    listPrice: 57000, // Fixed: Was 56.9
     avgRating: 3.85,
     numReviews: 14,
     ratingDistribution: [
@@ -642,10 +624,9 @@ const products: IProductInput[] = [
     countInStock: 44,
     numSales: 72,
     description:
-      'Design: Mesh vamp, ventilation. Sole anti-slip groove design, shock absorption and anti-slip. The inside of the shoe is wide and soft, bringing you a good comfortable experience',
+      'Design: Mesh vamp, ventilation. Sole anti-slip groove design, shock absorption and anti-slip.',
     sizes: ['8', '9', '10', '11', '12'],
     colors: ['Brown', 'Black', 'Grey'],
-
     reviews: [],
   },
   {
@@ -656,8 +637,8 @@ const products: IProductInput[] = [
     images: ['/images/p45-1.jpg', '/images/p45-2.jpg'],
     tags: ['new-arrival', 'featured'],
     isPublished: true,
-    price: 170009.95,
-    listPrice: 200,
+    price: 170000,
+    listPrice: 200000, // Fixed: Was 200
     avgRating: 3.66,
     numReviews: 15,
     ratingDistribution: [
@@ -673,11 +654,10 @@ const products: IProductInput[] = [
       "At least 50% of the shoe's main upper material is made with recycled content to reduce waste and carbon emissions",
     sizes: ['8', '9', '10', '11'],
     colors: ['Blue', 'Black', 'Grey'],
-
     reviews: [],
   },
   {
-    name: "Mens Wearbreeze Shoes, Urban - Ultra Comfortable Shoes, Breeze Shoes for Men, Men's Mesh Dress Sneakers Business Shoes",
+    name: 'Mens Wearbreeze Shoes, Urban - Ultra Comfortable',
     slug: toSlug(
       "Mens Wearbreeze Shoes, Urban - Ultra Comfortable Shoes, Breeze Shoes for Men, Men's Mesh Dress Sneakers Business Shoes"
     ),
@@ -686,8 +666,8 @@ const products: IProductInput[] = [
     images: ['/images/p46-1.jpg', '/images/p46-2.jpg'],
     tags: ['best-seller', 'todays-deal'],
     isPublished: true,
-    price: 32000.99,
-    listPrice: 80,
+    price: 32000,
+    listPrice: 80000, // Fixed: Was 80
     avgRating: 3.46,
     numReviews: 13,
     ratingDistribution: [
@@ -703,8 +683,265 @@ const products: IProductInput[] = [
       'Cloudfoam Comfort sockliner is ultra-soft and plush, with two layers of cushioning topped with soft, breathable mesh',
     sizes: ['8', '9', '10', '11'],
     colors: ['Green', 'Black', 'Grey'],
-
     reviews: [],
+  },
+]
+
+const users: IUserInput[] = [
+  {
+    name: 'John',
+    email: 'admin@example.com',
+    password: bcrypt.hashSync('123456', 5),
+    role: 'Admin',
+    address: {
+      fullName: 'John Doe',
+      street: '12 Admiralty Way, Lekki Phase 1',
+      city: 'Lagos',
+      province: 'Lagos',
+      postalCode: '105102',
+      country: 'Nigeria',
+      phone: '0801-234-5678',
+    },
+    paymentMethod: 'Paystack',
+    emailVerified: false,
+  },
+  {
+    name: 'Jane',
+    email: 'jane@example.com',
+    password: bcrypt.hashSync('123456', 5),
+    role: 'User',
+    address: {
+      fullName: 'Jane Harris',
+      street: '45 Bode Thomas Surulere',
+      city: 'Lagos',
+      province: 'Lagos',
+      postalCode: '101283',
+      country: 'Nigeria',
+      phone: '0802-345-6789',
+    },
+    paymentMethod: 'Paystack',
+    emailVerified: false,
+  },
+  {
+    name: 'Jack',
+    email: 'jack@example.com',
+    password: bcrypt.hashSync('123456', 5),
+    role: 'User',
+    address: {
+      fullName: 'Jack Ryan',
+      street: '8 Wuse II',
+      city: 'Abuja',
+      province: 'FCT',
+      postalCode: '900288',
+      country: 'Nigeria',
+      phone: '0803-456-7890',
+    },
+    paymentMethod: 'Paystack',
+    emailVerified: false,
+  },
+  {
+    name: 'Sarah',
+    email: 'sarah@example.com',
+    password: bcrypt.hashSync('123456', 5),
+    role: 'User',
+    address: {
+      fullName: 'Sarah Smith',
+      street: '22 Aba Road',
+      city: 'Port Harcourt',
+      province: 'Rivers',
+      postalCode: '500272',
+      country: 'Nigeria',
+      phone: '0804-567-8901',
+    },
+    paymentMethod: 'Paystack',
+    emailVerified: false,
+  },
+  {
+    name: 'Michael',
+    email: 'michael@example.com',
+    password: bcrypt.hashSync('123456', 5),
+    role: 'User',
+    address: {
+      fullName: 'John Alexander',
+      street: '15 Ring Road',
+      city: 'Ibadan',
+      province: 'Oyo',
+      postalCode: '200261',
+      country: 'Nigeria',
+      phone: '0805-678-9012',
+    },
+    paymentMethod: 'Paystack',
+    emailVerified: false,
+  },
+  {
+    name: 'Emily',
+    email: 'emily@example.com',
+    password: bcrypt.hashSync('123456', 5),
+    role: 'User',
+    address: {
+      fullName: 'Emily Johnson',
+      street: '10 New Haven',
+      city: 'Enugu',
+      province: 'Enugu',
+      postalCode: '400102',
+      country: 'Nigeria',
+      phone: '0806-789-0123',
+    },
+    paymentMethod: 'Paystack',
+    emailVerified: false,
+  },
+  {
+    name: 'Alice',
+    email: 'alice@example.com',
+    password: bcrypt.hashSync('123456', 5),
+    role: 'User',
+    address: {
+      fullName: 'Alice Cooper',
+      street: '5 Barnawa Close',
+      city: 'Kaduna',
+      province: 'Kaduna',
+      postalCode: '800212',
+      country: 'Nigeria',
+      phone: '0807-890-1234',
+    },
+    paymentMethod: 'Paystack',
+    emailVerified: false,
+  },
+  {
+    name: 'Tom',
+    email: 'tom@example.com',
+    password: bcrypt.hashSync('123456', 5),
+    role: 'User',
+    address: {
+      fullName: 'Tom Hanks',
+      street: '100 University Road',
+      city: 'Akoka',
+      province: 'Lagos',
+      postalCode: '100001',
+      country: 'Nigeria',
+      phone: '0808-901-2345',
+    },
+    paymentMethod: 'Paystack',
+    emailVerified: false,
+  },
+  {
+    name: 'Linda',
+    email: 'linda@example.com',
+    password: bcrypt.hashSync('123456', 5),
+    role: 'User',
+    address: {
+      fullName: 'Linda Holmes',
+      street: '9 G.R.A',
+      city: 'Ikeja',
+      province: 'Lagos',
+      postalCode: '100271',
+      country: 'Nigeria',
+      phone: '0809-012-3456',
+    },
+    paymentMethod: 'Paystack',
+    emailVerified: false,
+  },
+  {
+    name: 'George',
+    email: 'george@example.com',
+    password: bcrypt.hashSync('123456', 5),
+    role: 'User',
+    address: {
+      fullName: 'George Smith',
+      street: '11 Alagbaka',
+      city: 'Akure',
+      province: 'Ondo',
+      postalCode: '340283',
+      country: 'Nigeria',
+      phone: '0810-123-4567',
+    },
+    paymentMethod: 'Paystack',
+    emailVerified: false,
+  },
+  {
+    name: 'Jessica',
+    email: 'jessica@example.com',
+    password: bcrypt.hashSync('123456', 5),
+    role: 'User',
+    address: {
+      fullName: 'Jessica Brown',
+      street: '21 Warri Sapele Road',
+      city: 'Warri',
+      province: 'Delta',
+      postalCode: '332101',
+      country: 'Nigeria',
+      phone: '0811-234-5678',
+    },
+    paymentMethod: 'Paystack',
+    emailVerified: false,
+  },
+  {
+    name: 'Chris',
+    email: 'chris@example.com',
+    password: bcrypt.hashSync('123456', 5),
+    role: 'User',
+    address: {
+      fullName: 'Chris Evans',
+      street: '44 Mission Road',
+      city: 'Benin City',
+      province: 'Edo',
+      postalCode: '300251',
+      country: 'Nigeria',
+      phone: '0812-345-6789',
+    },
+    paymentMethod: 'Paystack',
+    emailVerified: false,
+  },
+  {
+    name: 'Samantha',
+    email: 'samantha@example.com',
+    password: bcrypt.hashSync('123456', 5),
+    role: 'User',
+    address: {
+      fullName: 'Samantha Wilson',
+      street: '12 Calabar Road',
+      city: 'Calabar',
+      province: 'Cross River',
+      postalCode: '540242',
+      country: 'Nigeria',
+      phone: '0813-456-7890',
+    },
+    paymentMethod: 'Paystack',
+    emailVerified: false,
+  },
+  {
+    name: 'David',
+    email: 'david@example.com',
+    password: bcrypt.hashSync('123456', 5),
+    role: 'User',
+    address: {
+      fullName: 'David Lee',
+      street: '33 Murtala Mohammed Way',
+      city: 'Kano',
+      province: 'Kano',
+      postalCode: '700211',
+      country: 'Nigeria',
+      phone: '0814-567-8901',
+    },
+    paymentMethod: 'Paystack',
+    emailVerified: false,
+  },
+  {
+    name: 'Anna',
+    email: 'anna@example.com',
+    password: bcrypt.hashSync('123456', 5),
+    role: 'User',
+    address: {
+      fullName: 'Anna Smith',
+      street: '18 Bukuru Expressway',
+      city: 'Jos',
+      province: 'Plateau',
+      postalCode: '930211',
+      country: 'Nigeria',
+      phone: '0815-678-9012',
+    },
+    paymentMethod: 'Paystack',
+    emailVerified: false,
   },
 ]
 
@@ -767,6 +1004,7 @@ const data: Data = {
     },
   ],
   products,
+  users, // Merged the users array here
 }
 
 export default data

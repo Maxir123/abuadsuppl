@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { APP_DESCRIPTION, APP_NAME, APP_SLOGAN } from '@/lib/constants'
 import ClientProviders from '@/components/shared/client-providers'
+import Providers from '@/components/providers'
 
 export const metadata: Metadata = {
   title: {
@@ -31,7 +32,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ClientProviders>{children}</ClientProviders>
+        <Providers>
+          <ClientProviders>{children}</ClientProviders>
+        </Providers>
       </body>
     </html>
   )
