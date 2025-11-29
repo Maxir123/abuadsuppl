@@ -1,9 +1,17 @@
+// app/layout.tsx
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Inter } from 'next/font/google' // ← Switch to Inter (reliable)
 import './globals.css'
 import { APP_DESCRIPTION, APP_NAME, APP_SLOGAN } from '@/lib/constants'
 import ClientProviders from '@/components/shared/client-providers'
 import Providers from '@/components/providers'
+
+// Use Inter instead of Geist → Turbopack can always download it
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-sans', // optional, for Tailwind
+})
 
 export const metadata: Metadata = {
   title: {
@@ -12,15 +20,6 @@ export const metadata: Metadata = {
   },
   description: APP_DESCRIPTION,
 }
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-})
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-})
 
 export default function RootLayout({
   children,
@@ -29,9 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang='en'>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${inter.className} ${inter.variable} antialiased`}>
         <Providers>
           <ClientProviders>{children}</ClientProviders>
         </Providers>
