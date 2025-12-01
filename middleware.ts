@@ -1,24 +1,12 @@
-// middleware.ts  (project root)
+// middleware.ts (root of project or src/ if you're using src/)
 import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { auth } from '@/auth' // Your auth function
 
-export async function middleware(req: NextRequest) {
-  const session = await auth() // Get session server-side
-  const { pathname } = req.nextUrl
-
-  const protectedPaths = ['/checkout', '/account', '/admin']
-  const isProtected = protectedPaths.some((path) => pathname.startsWith(path))
-
-  if (isProtected && !session?.user) {
-    const signInUrl = new URL('/sign-in', req.url)
-    signInUrl.searchParams.set('callbackUrl', pathname)
-    return NextResponse.redirect(signInUrl)
-  }
-
+export function middleware() {
+  // simple pass-through
   return NextResponse.next()
 }
 
+// optional: restrict which paths run the middleware
 export const config = {
-  matcher: ['/checkout/:path*', '/account/:path*', '/admin/:path*'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }
