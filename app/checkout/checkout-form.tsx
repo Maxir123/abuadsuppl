@@ -824,9 +824,10 @@ const CheckoutForm = () => {
                                   <p className='text-sm text-gray-600'>
                                     {item.color}, {item.size}
                                   </p>
-                                  <p className='font-bold text-green-600 mt-1'>
+                                  <div className='font-bold text-green-600 mt-1'>
                                     <ProductPrice price={item.price} />
-                                  </p>
+                                  </div>
+
                                   <Select
                                     value={item.quantity.toString()}
                                     onValueChange={(value) => {
