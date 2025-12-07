@@ -31,19 +31,19 @@ export const AVAILABLE_DELIVERY_DATES = [
   {
     name: 'Tomorrow',
     daysToDeliver: 1,
-    shippingPrice: 12.9,
+    shippingPrice: 4000,
     freeShippingMinPrice: 0,
   },
   {
     name: 'Next 3 Days',
     daysToDeliver: 3,
-    shippingPrice: 6.9,
+    shippingPrice: 1500,
     freeShippingMinPrice: 0,
   },
   {
     name: 'Next 5 Days',
     daysToDeliver: 5,
-    shippingPrice: 4.9,
-    freeShippingMinPrice: 35,
+    shippingPrice: 1000,
+    freeShippingMinPrice: 35000,
   },
 ]

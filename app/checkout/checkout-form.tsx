@@ -52,6 +52,8 @@ import {
   AVAILABLE_PAYMENT_METHODS,
   DEFAULT_PAYMENT_METHOD,
 } from '@/lib/constants'
+import { createOrder } from '@/lib/actions/order.actions'
+import { toast } from 'sonner'
 
 // Stepper Component
 const Stepper = ({
@@ -337,7 +339,9 @@ const CheckoutForm = () => {
     updateItem,
     removeItem,
     setDeliveryDateIndex,
+    clearCart, // <-- add this
   } = useCartStore()
+
   const isMounted = useIsMounted()
 
   const shippingAddressForm = useForm<ShippingAddress>({
@@ -348,6 +352,15 @@ const CheckoutForm = () => {
     setShippingAddress(values)
     setIsAddressSelected(true)
   }
+  // local selected delivery index (keeps radio controlled and syncs with store)
+  const [selectedDeliveryIndex, setSelectedDeliveryIndex] = useState<
+    number | undefined
+  >(deliveryDateIndex)
+
+  // keep local selected index in sync if store value changes
+  useEffect(() => {
+    setSelectedDeliveryIndex(deliveryDateIndex)
+  }, [deliveryDateIndex])
 
   useEffect(() => {
     if (!isMounted || !shippingAddress) return
@@ -367,8 +380,56 @@ const CheckoutForm = () => {
     useState<boolean>(false)
 
   const handlePlaceOrder = async () => {
-    // TODO: place order
+    // guard: shipping address
+    if (!shippingAddress) {
+      toast.error('Please provide a shipping address before placing the order.')
+      return
+    }
+
+    // guard: delivery date must be selected
+    // Use selectedDeliveryIndex from local state instead of deliveryDateIndex from store
+    // This ensures we have the most current value
+    if (selectedDeliveryIndex === undefined) {
+      toast.error('Please select a delivery date before placing the order.')
+      return
+    }
+
+    // guard: payment method (optional)
+    if (!paymentMethod) {
+      toast.error('Please choose a payment method before placing the order.')
+      return
+    }
+
+    try {
+      const res = await createOrder({
+        items,
+        shippingAddress,
+        expectedDeliveryDate: calculateFutureDate(
+          AVAILABLE_DELIVERY_DATES[selectedDeliveryIndex].daysToDeliver
+        ),
+        deliveryDateIndex: selectedDeliveryIndex, // Use the local state value
+        paymentMethod,
+        itemsPrice,
+        shippingPrice,
+        taxPrice,
+        totalPrice,
+      })
+
+      if (!res.success) {
+        toast.error(res.message || 'Failed to place order')
+        return
+      }
+
+      // success
+      toast.success(res.message || 'Order placed successfully!')
+      clearCart()
+      router.push(`/checkout/${res.data?.orderId}`)
+    } catch (err) {
+      toast.error('An unexpected error occurred. Please try again.')
+      console.error(err)
+    }
   }
+
   const handleSelectPaymentMethod = () => {
     setIsAddressSelected(true)
     setIsPaymentMethodSelected(true)
@@ -412,9 +473,9 @@ const CheckoutForm = () => {
                             <p className='font-medium'>
                               {shippingAddress.fullName}
                             </p>
-                            <p>{shippingAddress.street}</p>
-                            <p>{`${shippingAddress.city}, ${shippingAddress.province}, ${shippingAddress.postalCode}`}</p>
-                            <p>{shippingAddress.country}</p>
+                            <div>{shippingAddress.street}</div>
+                            <div>{`${shippingAddress.city}, ${shippingAddress.province}, ${shippingAddress.postalCode}`}</div>
+                            <div>{shippingAddress.country}</div>
                             <p className='flex items-center gap-1'>
                               📞 {shippingAddress.phone}
                             </p>
@@ -630,16 +691,14 @@ const CheckoutForm = () => {
                             <h3 className='text-lg font-semibold text-gray-900 mb-2'>
                               Payment Method
                             </h3>
-                            <p className='text-gray-600 font-medium'>
-                              {paymentMethod}
+                            <p className='text-gray-600 font-medium capitalize'>
+                              {paymentMethod.replace(/_/g, ' ')}
                             </p>
                           </div>
                         </div>
                         <Button
                           variant='outline'
-                          onClick={() => {
-                            setIsPaymentMethodSelected(false)
-                          }}
+                          onClick={() => setIsPaymentMethodSelected(false)}
                           className='text-green-600 border-green-200 hover:bg-green-50'
                         >
                           <Edit className='h-4 w-4 mr-2' />
@@ -671,31 +730,37 @@ const CheckoutForm = () => {
                         onValueChange={(value) => setPaymentMethod(value)}
                         className='space-y-4'
                       >
-                        {AVAILABLE_PAYMENT_METHODS.map((pm) => (
+                        {AVAILABLE_PAYMENT_METHODS.map((method) => (
                           <div
-                            key={pm.name}
-                            className='flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:border-green-300 transition-colors'
+                            key={method.name}
+                            className='flex items-center space-x-3 p-4 border rounded-lg hover:border-green-500 transition-colors cursor-pointer'
                           >
                             <RadioGroupItem
-                              value={pm.name}
-                              id={`payment-${pm.name}`}
-                              className='text-green-600 border-2 border-gray-300'
+                              value={method.name}
+                              id={method.name}
                             />
                             <Label
-                              className='flex-1 font-semibold text-gray-900 cursor-pointer text-lg'
-                              htmlFor={`payment-${pm.name}`}
+                              htmlFor={method.name}
+                              className='cursor-pointer flex-1 font-medium capitalize'
                             >
-                              {pm.name}
+                              {method.name.replace(/_/g, ' ')}{' '}
+                              {/* display method.name */}
                             </Label>
                           </div>
                         ))}
                       </RadioGroup>
 
                       <Button
-                        onClick={handleSelectPaymentMethod}
-                        className='w-full mt-6 bg-green-600 hover:bg-green-700 py-3 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300'
+                        onClick={() => {
+                          if (!paymentMethod) {
+                            toast.error('Please select a payment method')
+                            return
+                          }
+                          setIsPaymentMethodSelected(true)
+                        }}
+                        className='w-full mt-6 bg-green-600 hover:bg-green-700 py-3 text-lg font-semibold rounded-lg shadow-lg'
                       >
-                        Continue to Review
+                        Continue to Delivery Date
                       </Button>
                     </CardContent>
                   </Card>
@@ -871,15 +936,21 @@ const CheckoutForm = () => {
                           </h3>
                           <RadioGroup
                             value={
-                              AVAILABLE_DELIVERY_DATES[deliveryDateIndex!]?.name
+                              selectedDeliveryIndex !== undefined
+                                ? AVAILABLE_DELIVERY_DATES[
+                                    selectedDeliveryIndex
+                                  ].name
+                                : undefined
                             }
-                            onValueChange={(value) =>
-                              setDeliveryDateIndex(
-                                AVAILABLE_DELIVERY_DATES.findIndex(
-                                  (address) => address.name === value
-                                )!
+                            onValueChange={(value) => {
+                              const index = AVAILABLE_DELIVERY_DATES.findIndex(
+                                (dd) => dd.name === value
                               )
-                            }
+                              if (index !== -1) {
+                                setSelectedDeliveryIndex(index)
+                                setDeliveryDateIndex(index) // update store
+                              }
+                            }}
                             className='space-y-4'
                           >
                             {AVAILABLE_DELIVERY_DATES.map((dd) => (
@@ -894,8 +965,8 @@ const CheckoutForm = () => {
                                     className='text-green-600 border-2 border-gray-300 mt-1'
                                   />
                                   <Label
-                                    className='flex-1 cursor-pointer'
                                     htmlFor={`address-${dd.name}`}
+                                    className='flex-1 cursor-pointer'
                                   >
                                     <div className='font-semibold text-green-700 text-lg'>
                                       {
@@ -923,7 +994,6 @@ const CheckoutForm = () => {
                               </div>
                             ))}
                           </RadioGroup>
-
                           <Button
                             onClick={() => setIsDeliveryDateSelected(true)}
                             className='w-full mt-6 bg-green-600 hover:bg-green-700 py-3 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300'
