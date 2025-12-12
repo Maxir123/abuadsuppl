@@ -1022,9 +1022,10 @@ const CheckoutForm = () => {
                         Place Your Order
                       </Button>
                       <div className='mt-4 text-center'>
-                        <p className='font-bold text-lg text-gray-900'>
+                        <div className='font-bold text-lg text-gray-900'>
                           Order Total: <ProductPrice price={totalPrice} />
-                        </p>
+                        </div>
+
                         <p className='text-xs text-gray-600 mt-2'>
                           By placing your order, you agree to {APP_NAME}&apos;s
                           privacy notice and conditions of use.
