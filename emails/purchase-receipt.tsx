@@ -65,9 +65,12 @@ PurchaseReceiptEmail.PreviewProps = {
 
 const dateFormatter = new Intl.DateTimeFormat('en', { dateStyle: 'medium' })
 
-export default async function PurchaseReceiptEmail({
-  order,
-}: OrderInformationProps) {
+const safeDate = (value?: string | Date) => {
+  if (!value) return ''
+  const d = new Date(value)
+  return isNaN(d.getTime()) ? '' : dateFormatter.format(d)
+}
+export default function PurchaseReceiptEmail({ order }: OrderInformationProps){
   return (
     <Html>
       <Preview>View order receipt</Preview>
@@ -88,8 +91,9 @@ export default async function PurchaseReceiptEmail({
                 <Column>
                   <Text className='mb-0 text-gray-500'>Purchased On</Text>
                   <Text className='mt-0'>
-                    {dateFormatter.format(order.createdAt)}
+                    {safeDate(order.createdAt)}
                   </Text>
+
                 </Column>
 
                 <Column>

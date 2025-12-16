@@ -3,13 +3,13 @@
 import { Cart, OrderItem, ShippingAddress } from '@/types'
 import { formatError, round2 } from '../utils'
 import { AVAILABLE_DELIVERY_DATES } from '../constants'
-import Order, { IOrder } from '../db/models/order.model'
 import { OrderInputSchema } from '../validator'
 import { auth } from '@/auth'
 import { connectToDatabase } from '../db'
-import { formatAmountForPaystack, paystack } from '../paystack'
-import { sendPurchaseReceipt } from '@/emails'
+import Order, { IOrder } from '../db/models/order.model'
 import { revalidatePath } from 'next/cache'
+import { sendPurchaseReceipt } from '@/emails'
+import { paystack } from '../paystack'
 
 export const createOrder = async (clientSideCart: Cart) => {
   try {
@@ -69,91 +69,74 @@ export async function getOrderById(orderId: string): Promise<IOrder> {
 // ... (imports remain the same)
 
 // ⭐ INITIALIZE PAYSTACK PAYMENT
-export async function createPaystackPayment(orderId: string) {
+export async function createpaystackOrder(orderId: string) {
   await connectToDatabase()
-
   try {
-    const order = await Order.findById(orderId).populate('user', 'email')
-    if (!order) throw new Error('Order not found')
-
-    // FIX: Assert 'order.user' as the specific object shape we expect
-    const user = order.user as unknown as { email: string }
-
-    const amountInKobo = formatAmountForPaystack(order.totalPrice)
-    const reference = `order_${orderId}_${Date.now()}`
-
-    const init = await paystack.initializePayment({
-      email: user.email, // Use the casted 'user' variable
-      amount: amountInKobo,
-      reference,
-      callback_url: `${process.env.NEXT_PUBLIC_BASE_URL}/account/orders/${orderId}/verify`,
-      metadata: {
-        orderId,
-      },
-    })
-
-    order.paymentResult = {
-      id: reference,
-      status: 'INITIALIZED',
-      email_address: user.email,
-      pricePaid: '0',
-    }
-
-    await order.save()
-
-    return {
-      success: true,
-      message: 'Paystack payment initialized successfully',
-      data: {
-        authorization_url: init.data.authorization_url,
-        reference,
-      },
+    const order = await Order.findById(orderId)
+    .populate('user', 'email name')
+    if (order) {
+      const paystackOrder = await paystack.createOrder(order.totalPrice)
+      order.paymentResult = {
+        id: paystackOrder.id,
+        email_address: '',
+        status: '',
+        pricePaid: '0',
+      }
+      await order.save()
+      return {
+        success: true,
+        message: 'paystack order created successfully',
+        data: paystackOrder.id,
+      }
+    } else {
+      throw new Error('Order not found')
     }
   } catch (err) {
     return { success: false, message: formatError(err) }
   }
 }
 
-// ⭐ VERIFY PAYSTACK PAYMENT
-export async function verifyPaystackPayment(
+export async function approvepaystackOrder(
   orderId: string,
-  data: { reference: string }
+  data: { orderID: string }
 ) {
   await connectToDatabase()
-
   try {
     const order = await Order.findById(orderId).populate('user', 'email name')
     if (!order) throw new Error('Order not found')
 
-    const verification = await paystack.verifyPayment(data.reference)
-    const result = verification.data
-
-    if (result.status !== 'success') throw new Error('Payment not completed')
-
-    // Update order
+    const captureData = await paystack.capturePayment(data.orderID)
+    if (
+      !captureData ||
+      captureData.id !== order.paymentResult?.id ||
+      captureData.status !== 'COMPLETED'
+    )
+      throw new Error('Error in paystack payment')
     order.isPaid = true
     order.paidAt = new Date()
-
-    // FIX: Ensure pricePaid is a string to match the error requirement
-    // result.amount is usually in Kobo (e.g. 5000), we divide by 100 for Naira (50.00)
     order.paymentResult = {
-      id: result.reference,
-      status: result.status,
-      email_address: result.customer?.email || '',
-      pricePaid: (result.amount / 100).toFixed(2),
+      id: captureData.id,
+      status: captureData.status,
+      email_address: captureData.payer.email_address,
+      pricePaid:
+        captureData.purchase_units[0]?.payments?.captures[0]?.amount?.value,
     }
-
     await order.save()
+   if (!order.user?.email) {
+  console.error('❌ No user email found. Email not sent.')
+  return
+}
 
-    // Send receipt email
-    await sendPurchaseReceipt({ order })
+  console.log('📧 Sending purchase receipt to:', order.user.email)
 
-    // Revalidate orders page
+  await sendPurchaseReceipt({
+    order,
+  })
+
     revalidatePath(`/account/orders/${orderId}`)
-
     return {
       success: true,
-      message: 'Your order has been successfully paid via Paystack',
+      message: 'Your order has been successfully paid by paystack',
     }
   } catch (err) {
     return { success: false, message: formatError(err) }

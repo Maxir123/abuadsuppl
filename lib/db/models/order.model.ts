@@ -1,18 +1,21 @@
 import { IOrderInput } from '@/types'
-import { Document, Model, model, models, Schema } from 'mongoose'
+import { Document, Model, model, models, Schema, Types } from 'mongoose'
 
 export interface IOrder extends Document, IOrderInput {
+  paystackReference?: string
   createdAt: Date
   updatedAt: Date
 }
 
+
 const orderSchema = new Schema<IOrder>(
   {
     user: {
-      type: Schema.Types.ObjectId as unknown as typeof String,
+      type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
+
     items: [
       {
         product: {
@@ -32,6 +35,7 @@ const orderSchema = new Schema<IOrder>(
         color: { type: String },
       },
     ],
+
     shippingAddress: {
       fullName: { type: String, required: true },
       street: { type: String, required: true },
@@ -41,27 +45,36 @@ const orderSchema = new Schema<IOrder>(
       province: { type: String, required: true },
       phone: { type: String, required: true },
     },
+
     expectedDeliveryDate: { type: Date, required: true },
+
     paymentMethod: { type: String, required: true },
-    paymentResult: { id: String, status: String, email_address: String },
+
+    paymentResult: {
+      id: String,
+      status: String,
+      email_address: String,
+      pricePaid: String,
+    },
+
+
+    paystackReference: { type: String }, // ✅ ADD THIS
+
     itemsPrice: { type: Number, required: true },
     shippingPrice: { type: Number, required: true },
     taxPrice: { type: Number, required: true },
     totalPrice: { type: Number, required: true },
-    isPaid: { type: Boolean, required: true, default: false },
+
+    isPaid: { type: Boolean, default: false },
     paidAt: { type: Date },
-    isDelivered: { type: Boolean, required: true, default: false },
+
+    isDelivered: { type: Boolean, default: false },
     deliveredAt: { type: Date },
-    createdAt: { type: Date, default: Date.now },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 )
 
 const Order =
-  models && models.Order
-    ? (models.Order as Model<IOrder>)
-    : model<IOrder>('Order', orderSchema)
+  models.Order ?? model<IOrder>('Order', orderSchema)
 
 export default Order

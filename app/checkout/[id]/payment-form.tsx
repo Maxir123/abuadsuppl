@@ -1,552 +1,295 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
-import Image from 'next/image'
-import { Toaster, toast } from 'sonner'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import ProductPrice from '@/components/shared/product/product-price'
-import type { IOrder } from '@/lib/db/models/order.model'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Card, CardContent } from '@/components/ui/card'
+import { toast } from 'sonner'
+import { IOrder } from '@/lib/db/models/order.model'
 import { formatDateTime } from '@/lib/utils'
-import {
-  createPaystackPayment,
-  verifyPaystackPayment,
-} from '@/lib/actions/order.actions'
-import {
-  MapPin,
-  CreditCard,
-  Package,
-  Calendar,
-  Shield,
-  CheckCircle,
-  Loader2,
-} from 'lucide-react'
 import CheckoutFooter from '../checkout-footer'
 import { useRouter } from 'next/navigation'
-
-interface PaystackPopInstance {
-  newTransaction: (config: {
-    key: string
-    email: string
-    amount: number
-    ref: string
-    onSuccess: (response: unknown) => void
-    onCancel?: () => void
-    onClose?: () => void
-  }) => void
-}
-
-declare global {
-  interface Window {
-    PaystackPop?: {
-      new (): PaystackPopInstance
-    }
-  }
-}
-
-// Extended ShippingAddress type with optional email
-type ExtendedShippingAddress = {
-  fullName: string
-  street: string
-  city: string
-  postalCode: string
-  province: string
-  phone: string
-  country: string
-  email?: string
-}
-
-// Type for user object
-type OrderUser = string | { email?: string; [key: string]: unknown }
+import { Button } from '@/components/ui/button'
+import ProductPrice from '@/components/shared/product/product-price'
+import { approvepaystackOrder } from '@/lib/actions/order.actions'
+import PayButton from '@/components/PayButton'
 
 interface OrderPaymentFormProps {
-  order: IOrder & {
-    shippingAddress?: ExtendedShippingAddress
-    user?: OrderUser
-    email?: string
-  }
-  paystackPublicKey: string
+  order: IOrder
+  paystackClientId: string
   isAdmin?: boolean
-}
-
-interface OrderSectionProps {
-  title: string
-  icon?: React.ReactNode
-  children: React.ReactNode
-  border?: boolean
+  /**
+   * Optional overrides so this component can be used when your Paystack flow
+   * lives somewhere else (server action / API route).
+   */
+  onCreatePaystackOrder?: (orderId: string) => Promise<{ success: boolean; message?: string; data?: any }> // returns created order data for the Paystack widget
+  onApprovePaystack?: (orderId: string, data: any) => Promise<{ success: boolean; message?: string }>
 }
 
 export default function OrderPaymentForm({
   order,
-  paystackPublicKey,
-  isAdmin,
+  paystackClientId,
+  isAdmin = false,
+  onCreatePaystackOrder,
+  onApprovePaystack,
 }: OrderPaymentFormProps) {
-  // silence unused isAdmin lint if not used
-  void isAdmin
-
   const router = useRouter()
-  const [isProcessing, setIsProcessing] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
+  const [isApproving, setIsApproving] = useState(false)
 
-  // stable fallback reference created once on mount (impure calls only inside useEffect)
-  const fallbackRef = useRef<string | null>(null)
+  // client-side redirect if order already paid
   useEffect(() => {
-    if (!fallbackRef.current) {
-      // safe to call impure functions here (not during render)
-      fallbackRef.current = `order_${String(order._id)}_${Date.now()}_${Math.floor(
-        Math.random() * 1_000_000
-      )}`
+    if (order?.isPaid) {
+      router.push(`/account/orders/${order._id}`)
     }
-    // we intentionally don't add order._id to deps to keep single seed during component lifetime
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [order?.isPaid, order?._id, router])
 
-  // use a counter to ensure uniqueness across attempts for this mounted component
-  const paymentCounterRef = useRef(0)
-
+  // Defensive destructure with defaults
   const {
-    _id: orderId,
-    shippingAddress,
+    shippingAddress = {} as any,
     items = [],
+    itemsPrice = 0,
+    taxPrice = 0,
+    shippingPrice = 0,
     totalPrice = 0,
     paymentMethod,
     expectedDeliveryDate,
     isPaid,
-  } = order
+  } = order || {}
 
-  if (isPaid) {
-    // redirect if already paid
-    router.push(`/account/orders/${String(orderId)}`)
-    return null
-  }
+  const formattedDelivery = useMemo(() => {
+    if (!expectedDeliveryDate) return 'Not available'
+    return formatDateTime(expectedDeliveryDate).dateOnly
+  }, [expectedDeliveryDate])
 
-  // Helper to pick an email from known places
-  const getCustomerEmail = (): string => {
-    const maybeUser = order.user
-    if (maybeUser && typeof maybeUser === 'object' && 'email' in maybeUser) {
-      // Typeguard: user is object with possibly email
-      const e = (maybeUser as { email?: unknown }).email
-      if (typeof e === 'string' && e.length > 0) return e
-    }
+  // Fallback implementation that calls an API route if a prop handler isn't provided.
+  const createPaystackOrder = async (orderId: string) => {
+    if (onCreatePaystackOrder) return onCreatePaystackOrder(orderId)
 
-    if (typeof order.email === 'string' && order.email.length > 0)
-      return order.email
-    if (shippingAddress?.email) return shippingAddress.email
-    return 'customer@example.com'
-  }
-
-  // Main payment handler (invoked by user action)
-  const handlePaystackPayment = async () => {
-    setIsProcessing(true)
+    setIsCreating(true)
     try {
-      const initRes = (await createPaystackPayment(String(orderId))) as {
-        success: boolean
-        message?: string
-        data?: { reference?: string }
+      const res = await fetch('/api/paystack/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      })
+      const data = await res.json()
+      setIsCreating(false)
+      return data
+    } catch (err: any) {
+      setIsCreating(false)
+      return { success: false, message: err?.message || 'Failed to create Paystack order' }
+    }
+  }
+
+  const approvePaystackOrder = async (orderId: string, payload: any) => {
+    setIsApproving(true)
+    try {
+      if (onApprovePaystack) {
+        const result = await onApprovePaystack(orderId, payload)
+        setIsApproving(false)
+        return result
       }
 
-      if (!initRes.success) {
-        toast.error(initRes.message || 'Failed to initialize payment')
-        setIsProcessing(false)
+      // default: use the server action / helper the app already has
+      const result = await approvepaystackOrder(orderId, payload)
+      setIsApproving(false)
+      return result
+    } catch (err: any) {
+      setIsApproving(false)
+      return { success: false, message: err?.message || 'Approval failed' }
+    }
+  }
+
+  // Lightweight Paystack integration UI. Replace or enhance this part with
+  // your preferred Paystack provider/widget. This component keeps the
+  // create/approve responsibilities outside of UI so it is easy to test.
+  const PaystackArea = () => {
+    if (paymentMethod !== 'PayStack' || isPaid) return null
+
+    return (
+      <div className='space-y-2'>
+        {/* Show helpful state for user */}
+        <div className='text-sm'>
+          Pay securely with PayStack. You will be redirected to the PayStack popup
+          to complete payment.
+        </div>
+
+        <div className='flex gap-2'>
+<form id="paystack-form">
+  <Button
+    type="button"
+    className="rounded-full w-full"
+    onClick={async () => {
+      setIsCreating(true)
+
+      // Step 1: Create Paystack order on server
+      const res = await createPaystackOrder(order._id.toString())
+      setIsCreating(false)
+
+      if (!res?.success || !res.data?.reference) {
+        toast.error('Payment initialization failed')
         return
       }
 
-      paymentCounterRef.current += 1
+      const payload = res.data
+      const userEmail = typeof order.user === 'string' ? '' : order.user.email
 
-      // Use server-provided reference if present; otherwise compose from stable fallback + counter
-      const reference =
-        initRes.data?.reference ??
-        (fallbackRef.current
-          ? `${fallbackRef.current}_${paymentCounterRef.current}`
-          : `${String(orderId)}_${paymentCounterRef.current}`)
+      // Step 2: Open Paystack Popup
+      const handler = (window as any).PaystackPop.setup({
+        key: paystackClientId,
+        email: userEmail,
+        amount: Math.round(totalPrice * 100), // NGN → kobo
+        ref: payload.reference,
+        onClose: () => toast.error('Payment window closed'),
+        callback: async (response: any) => {
+          setIsApproving(true)
+          // Step 3: Approve / verify on your server
+          const approval = await approvePaystackOrder(order._id.toString(), {
+            reference: response.reference,
+          })
+          setIsApproving(false)
+        if (approval?.success) {
+          toast.success('Payment completed')
+          router.push(`/account/orders/${order._id}`)
+        } else {
+          toast.error('Payment approval failed')
+        }
 
-      // instantiate Paystack safely
-      const PaystackCtor = window.PaystackPop
-      if (!PaystackCtor) {
-        toast.error('Paystack is not available on window')
-        setIsProcessing(false)
-        return
-      }
-      const paystack = new PaystackCtor()
-
-      paystack.newTransaction({
-        key: paystackPublicKey,
-        email: getCustomerEmail(),
-        amount: Math.round(Number(totalPrice || 0) * 100),
-        ref: reference,
-        onSuccess: async (response: unknown) => {
-          // narrow the unknown response
-          const tx = (response as { reference?: unknown }) ?? {}
-          if (!tx || typeof tx.reference !== 'string') {
-            toast.error('Payment completed but no reference returned.')
-            setIsProcessing(false)
-            return
-          }
-
-          toast.success('Payment completed — verifying...')
-
-          try {
-            const verifyRes = (await verifyPaystackPayment(String(orderId), {
-              reference: tx.reference,
-            })) as { success: boolean; message?: string }
-
-            if (verifyRes.success) {
-              toast.success(verifyRes.message || 'Payment verified.')
-              // small delay so user sees toast
-              setTimeout(() => {
-                router.push(`/account/orders/${String(orderId)}`)
-                router.refresh()
-              }, 900)
-            } else {
-              toast.error(verifyRes.message || 'Payment verification failed.')
-            }
-          } catch (err) {
-            console.error('verifyPaystackPayment error', err)
-            toast.error('Error confirming Paystack payment.')
-          } finally {
-            setIsProcessing(false)
-          }
-        },
-        onCancel: () => {
-          toast.error('Payment window closed.')
-          setIsProcessing(false)
-        },
-        onClose: () => {
-          setIsProcessing(false)
         },
       })
-    } catch (err) {
-      console.error('Payment error:', err)
-      toast.error('An error occurred during payment')
-      setIsProcessing(false)
-    }
-  }
 
-  const handleViewOrder = () => {
-    router.push(`/account/orders/${String(orderId)}`)
-  }
+      handler.openIframe()
+    }}
+    disabled={isCreating || isApproving}
+  >
+    {isCreating ? 'Initializing...' : isApproving ? 'Approving...' : 'Pay with PayStack'}
+  </Button>
+</form>
 
-  return (
-    <>
-      <Toaster position='top-center' />
 
-      <main className='max-w-6xl mx-auto px-4 py-8'>
-        <div className='mb-8'>
-          <h1 className='text-3xl font-bold'>Complete Payment</h1>
-          <p className='text-muted-foreground mt-2'>
-            Order #{String(orderId).slice(-8)} • Secure payment with{' '}
-            {paymentMethod}
-          </p>
+          <Button variant='ghost' onClick={() => router.push(`/account/orders/${order._id}`)}>
+            View Order
+          </Button>
         </div>
+      </div>
+    )
+  }
 
-        <div className='grid lg:grid-cols-3 gap-8'>
-          {/* Order Details */}
-          <div className='lg:col-span-2 space-y-6'>
-            {/* Shipping Address */}
-            <OrderSection
-              title='Shipping Address'
-              icon={<MapPin className='h-5 w-5' />}
-            >
-              <div className='space-y-2'>
-                <p className='font-semibold text-lg'>
-                  {shippingAddress?.fullName}
-                </p>
-                {shippingAddress?.phone && (
-                  <p className='text-muted-foreground'>
-                    {shippingAddress.phone}
-                  </p>
-                )}
-                <div className='space-y-1'>
-                  <p>{shippingAddress?.street}</p>
-                  <p>
-                    {shippingAddress?.city}, {shippingAddress?.province}
-                  </p>
-                  <p>
-                    {shippingAddress?.postalCode}, {shippingAddress?.country}
-                  </p>
-                </div>
-              </div>
-            </OrderSection>
-
-            {/* Payment Method */}
-            <OrderSection
-              title='Payment Method'
-              icon={<CreditCard className='h-5 w-5' />}
-              border
-            >
-              <div className='flex items-center justify-between'>
-                <div>
-                  <p className='text-lg font-semibold'>{paymentMethod}</p>
-                  <p className='text-sm text-muted-foreground'>
-                    {isPaid ? 'Payment completed' : 'Awaiting payment'}
-                  </p>
-                </div>
-                {!isPaid && (
-                  <div className='flex items-center gap-2 px-3 py-1 bg-amber-100 text-amber-800 rounded-full'>
-                    <span className='h-2 w-2 bg-amber-500 rounded-full animate-pulse' />
-                    <span className='text-sm font-medium'>Pending</span>
-                  </div>
-                )}
-              </div>
-            </OrderSection>
-
-            {/* Items & Delivery */}
-            <OrderSection
-              title='Items & Delivery'
-              icon={<Package className='h-5 w-5' />}
-            >
-              <div className='space-y-4'>
-                <div className='flex items-center gap-3 p-3 bg-blue-50 rounded-lg'>
-                  <Calendar className='h-5 w-5 text-blue-600' />
-                  <div>
-                    <p className='font-medium'>Expected Delivery</p>
-                    <p className='text-blue-700'>
-                      {formatDateTime(expectedDeliveryDate).dateOnly}
-                    </p>
-                  </div>
-                </div>
-
-                <div className='space-y-3'>
-                  <h4 className='font-semibold'>
-                    Order Items ({items.length})
-                  </h4>
-                  <div className='space-y-3'>
-                    {items.map((item) => (
-                      <div
-                        key={item.slug}
-                        className='flex items-center gap-4 p-3 border rounded-lg'
-                      >
-                        <div className='relative h-16 w-16 rounded-lg overflow-hidden bg-muted'>
-                          <Image
-                            src={item.image}
-                            alt={item.name}
-                            fill
-                            className='object-cover'
-                            sizes='64px'
-                          />
-                        </div>
-                        <div className='flex-1'>
-                          <p className='font-medium'>{item.name}</p>
-                          <p className='text-sm text-muted-foreground'>
-                            Quantity: {item.quantity}
-                          </p>
-                        </div>
-                        <div className='text-right'>
-                          <ProductPrice
-                            price={item.price}
-                            className='font-semibold'
-                          />
-                          <p className='text-sm text-muted-foreground'>
-                            <ProductPrice
-                              price={item.price * item.quantity}
-                              plain
-                            />
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </OrderSection>
-
-            {/* Mobile Order Summary */}
-            <div className='block lg:hidden'>
-              <OrderSummary
-                order={order}
-                onPaystackPayment={handlePaystackPayment}
-                onViewOrder={handleViewOrder}
-                isProcessing={isProcessing}
-                userEmail={getCustomerEmail()}
-              />
-            </div>
-
-            <CheckoutFooter />
+  const CheckoutSummary = () => (
+    <Card aria-labelledby='order-summary-title'>
+      <CardContent className='p-4'>
+        <div>
+          <div id='order-summary-title' className='text-lg font-bold'>
+            Order Summary
           </div>
 
-          {/* Desktop Order Summary */}
-          <div className='hidden lg:block'>
-            <OrderSummary
-              order={order}
-              onPaystackPayment={handlePaystackPayment}
-              onViewOrder={handleViewOrder}
-              isProcessing={isProcessing}
-              userEmail={getCustomerEmail()}
-            />
-          </div>
-        </div>
-      </main>
-    </>
-  )
-}
-
-// Order Section Component
-function OrderSection({
-  title,
-  icon,
-  children,
-  border = false,
-}: OrderSectionProps) {
-  return (
-    <Card
-      className={`${border ? 'border-t-0 border-r-0 border-l-0 border-b' : ''}`}
-    >
-      <CardContent className='p-6'>
-        <div className='flex items-center gap-3 mb-4'>
-          {icon && <div className='p-2 rounded-lg bg-primary/10'>{icon}</div>}
-          <h3 className='text-lg font-semibold'>{title}</h3>
-        </div>
-        {children}
-      </CardContent>
-    </Card>
-  )
-}
-
-// Order Summary Component (kept mostly the same)
-interface OrderSummaryProps {
-  order: IOrder & {
-    shippingAddress?: ExtendedShippingAddress
-    user?: OrderUser
-  }
-  onPaystackPayment: () => Promise<void> | void
-  onViewOrder: () => void
-  isProcessing: boolean
-  userEmail: string
-}
-
-function OrderSummary({
-  order,
-  onPaystackPayment,
-  onViewOrder,
-  isProcessing,
-  userEmail,
-}: OrderSummaryProps) {
-  const {
-    itemsPrice = 0,
-    shippingPrice,
-    taxPrice,
-    totalPrice = 0,
-    isPaid,
-    paymentMethod,
-  } = order
-
-  const priceBreakdown = [
-    { label: 'Subtotal', price: itemsPrice },
-    {
-      label: 'Shipping',
-      price: shippingPrice,
-      note: shippingPrice === 0 ? 'Free Shipping' : undefined,
-    },
-    { label: 'Tax', price: taxPrice },
-  ]
-
-  return (
-    <Card className='sticky top-6 border shadow-lg'>
-      <CardHeader className='pb-4 border-b'>
-        <CardTitle className='text-xl'>Order Summary</CardTitle>
-      </CardHeader>
-      <CardContent className='p-6'>
-        <div className='space-y-3'>
-          {priceBreakdown.map((item) => (
-            <div key={item.label} className='flex justify-between items-center'>
-              <div>
-                <span className='text-muted-foreground'>{item.label}</span>
-                {item.note && (
-                  <p className='text-xs text-green-600'>{item.note}</p>
-                )}
-              </div>
-              <span className='font-medium'>
-                {item.price === undefined ? (
-                  '--'
-                ) : item.price === 0 ? (
-                  <span className='text-green-600'>FREE</span>
-                ) : (
-                  <ProductPrice price={item.price} plain />
-                )}
+          <div className='space-y-2 mt-2'>
+            <div className='flex justify-between'>
+              <span>Items:</span>
+              <span>
+                <ProductPrice price={itemsPrice} plain />
               </span>
             </div>
-          ))}
 
-          <div className='pt-4 border-t'>
-            <div className='flex justify-between items-center'>
-              <span className='text-lg font-bold'>Total Amount</span>
-              <ProductPrice
-                price={totalPrice}
-                className='text-2xl font-bold text-primary'
-              />
+            <div className='flex justify-between'>
+              <span>Shipping & Handling:</span>
+              <span>
+                {shippingPrice === undefined ? '--' : shippingPrice === 0 ? 'FREE' : <ProductPrice price={shippingPrice} plain />}
+              </span>
             </div>
-          </div>
-        </div>
 
-        <div className='mt-8 space-y-4'>
-          {!isPaid && paymentMethod === 'Paystack' && (
-            <>
+            <div className='flex justify-between'>
+              <span>Tax:</span>
+              <span>{taxPrice === undefined ? '--' : <ProductPrice price={taxPrice} plain />}</span>
+            </div>
+
+            <div className='flex justify-between pt-1 font-bold text-lg'>
+              <span>Order Total:</span>
+              <span>
+                <ProductPrice price={totalPrice} plain />
+              </span>
+            </div>
+
+           <div>
+        <PayButton orderId={order._id.toString()} />
+      </div>
+            {!isPaid && paymentMethod?.toLowerCase() === 'cash on delivery' && (
               <Button
-                onClick={onPaystackPayment}
-                disabled={isProcessing}
-                className='w-full h-12 text-base font-semibold'
-                size='lg'
+                className='w-full rounded-full'
+                onClick={() => router.push(`/account/orders/${order._id}`)}
               >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className='mr-2 h-5 w-5 animate-spin' />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Shield className='mr-2 h-5 w-5' />
-                    Pay Now
-                  </>
-                )}
+                View Order
               </Button>
-
-              <div className='flex items-center justify-center gap-2 text-sm text-muted-foreground'>
-                <CheckCircle className='h-4 w-4 text-green-500' />
-                <span>Secure payment powered by Paystack</span>
-              </div>
-            </>
-          )}
-
-          {!isPaid && paymentMethod === 'Cash On Delivery' && (
-            <Button
-              onClick={onViewOrder}
-              className='w-full h-12 text-base'
-              variant='outline'
-            >
-              View Order Details
-            </Button>
-          )}
-
-          <div className='flex flex-wrap justify-center gap-3 pt-6 border-t'>
-            <div className='flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-full'>
-              <div className='h-1.5 w-1.5 rounded-full bg-green-500' />
-              <span className='text-xs'>SSL Secure</span>
-            </div>
-            <div className='flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-full'>
-              <div className='h-1.5 w-1.5 rounded-full bg-green-500' />
-              <span className='text-xs'>Encrypted</span>
-            </div>
-            <div className='flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-full'>
-              <div className='h-1.5 w-1.5 rounded-full bg-green-500' />
-              <span className='text-xs'>PCI DSS</span>
-            </div>
+            )}
           </div>
-        </div>
-
-        <div className='mt-6 space-y-2 text-sm text-muted-foreground'>
-          <p className='flex items-start gap-2'>
-            <span className='h-1.5 w-1.5 rounded-full bg-green-500 mt-1.5 flex-shrink-0' />
-            Your items are reserved for 30 minutes
-          </p>
-          <p className='flex items-start gap-2'>
-            <span className='h-1.5 w-1.5 rounded-full bg-green-500 mt-1.5 flex-shrink-0' />
-            Confirmation will be sent to {userEmail}
-          </p>
-          <p className='flex items-start gap-2'>
-            <span className='h-1.5 w-1.5 rounded-full bg-green-500 mt-1.5 flex-shrink-0' />
-            24/7 customer support available
-          </p>
         </div>
       </CardContent>
     </Card>
+  )
+  console.log('isPaid', isPaid, 'paymentMethod', paymentMethod)
+
+console.log('OrderPaymentForm debug:', {
+  isPaid,
+  paymentMethod,
+  totalPrice,
+})
+  return (
+    <main className='max-w-6xl mx-auto'>
+      <div className='grid md:grid-cols-4 gap-6'>
+        <div className='md:col-span-3'>
+          {/* Shipping Address */}
+          <section aria-label='shipping address' className='mb-4'>
+            <div className='grid md:grid-cols-3 my-3 pb-3'>
+              <div className='text-lg font-bold'>Shipping Address</div>
+              <div className='col-span-2'>
+                <p>
+                  {shippingAddress?.fullName ?? '—'} <br />
+                  {shippingAddress?.street ?? '—'} <br />
+                  {`${shippingAddress?.city ?? '—'}, ${shippingAddress?.province ?? '—'}, ${shippingAddress?.postalCode ?? '—'}, ${shippingAddress?.country ?? '—'}`}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* payment method */}
+          <section className='border-y py-3' aria-label='payment method'>
+            <div className='grid md:grid-cols-3 my-3 pb-3'>
+              <div className='text-lg font-bold'>Payment Method</div>
+              <div className='col-span-2'>
+                <p>{paymentMethod ?? '—'}</p>
+              </div>
+            </div>
+          </section>
+
+          <section className='grid md:grid-cols-3 my-3 pb-3' aria-label='items and shipping'>
+            <div className='flex text-lg font-bold'>Items and shipping</div>
+            <div className='col-span-2'>
+              <p>Delivery date: {formattedDelivery}</p>
+
+              <ul className='list-disc pl-4 mt-2'>
+                {items.map((item: any) => (
+                  <li key={item?.slug ?? item?.id} className='py-1'>
+                    <span className='font-medium'>{item?.name ?? 'Unnamed'}</span>
+                    <span> — </span>
+                    <span>
+                      {item?.quantity ?? 1} x <ProductPrice price={item?.price ?? 0} plain />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <div className='block md:hidden mt-4'>
+            <CheckoutSummary />
+          </div>
+
+          <CheckoutFooter />
+        </div>
+
+        <aside className='hidden md:block'>
+          <CheckoutSummary />
+        </aside>
+      </div>
+    </main>
   )
 }

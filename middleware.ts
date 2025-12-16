@@ -1,17 +1,15 @@
+// middleware.ts
+
 import NextAuth from 'next-auth'
 import authConfig from './auth.config'
 
-export const { auth: middleware } = NextAuth(authConfig)
+// 1. Get the handler function from NextAuth
+const { auth } = NextAuth(authConfig)
+
+// 2. Export it as a named export 'middleware' (as required by Next.js)
+export const middleware = auth
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
+  // ... your config remains the same
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 }

@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    turbopack: false, // Disable Turbopack globally
-  },
+  // your other config (images, redirects, etc.) — nothing about turbopack
 }
 
 module.exports = nextConfig
